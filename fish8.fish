@@ -26,7 +26,7 @@ function initialize
   set -g stack
   set -g reg_pc $program_start
   set -g reg_i
-  set -g reg_delay
+  set -g reg_delay 0
   set -g reg_sound
   set -g reg_v ( jot -b 0 16 )
   set -g display ( jot -b 0 (math "$display_width * $display_height") ) # 64x32 pixels
@@ -73,24 +73,36 @@ end
 
 function main_loop
   set -g cycle 0 # number of cycles since start
+  set -g start_time (date +"%s")
 
   # fetch-decode-execute ad infinitum
   while :
-    set cycle (math $cycle + 1)
-    if test $stop_after -ne -1 -a $cycle -gt $stop_after
-      break
+    if test $reg_delay -gt 0
+      set reg_delay (math $reg_delay - 1)
     end
 
-    fetch
-    decode_execute
+    tick
 
     if ! set -q draw_at_end
       blit_display_half_block
+    end
+
+    if test $stop_after -ne -1 -a $cycle -gt $stop_after
+      break
     end
   end
 
   if set -q draw_at_end
     blit_display_simple
+  end
+end
+
+# do one 1/60 of a second
+function tick
+  for subcycle in (seq $cycles_per_tick)
+    set cycle (math $cycle + 1)
+    fetch
+    decode_execute
   end
 end
 
@@ -120,15 +132,14 @@ end
 
 function decode_execute
   if test $hi_byte -eq 0
-    if test $lo_byte -eq (math 0xe0)
-      # clear screen
+    if test $lo_byte -eq (math 0xe0) # clear screen
       set display (jot -b 0 (count $display))
-    else if test $lo_byte -eq (math 0xee)
+    else if test $lo_byte -eq (math 0xee) # return
       if test (count $stack) -eq 0
         crash "stack underflow"
       end
       set reg_pc $stack[(count $stack)]
-      set -e $stack[(count $stack)]
+      set -e stack[(count $stack)]
     else
       crash "unknown 0x00 code:" (printf "0x%02x" $lo_byte)
     end
@@ -168,12 +179,14 @@ function decode_execute
     else if test $n -eq 3
       set reg_v[$x] (math "bitxor($reg_v[$x], $reg_v[$y])")
     else if test $n -eq 4
-      set reg_v[$x] (math $reg_v[$x] + $reg_v[$y])
-      set reg_v[15] 0
-      if test $reg_v[$x] -gt 255
-        set reg_v[$x] (math $reg_v[$x] % 256)
-        set reg_v[15] 1
+      set -l sum (math $reg_v[$x] + $reg_v[$y])
+      set -l flag 0
+      if test $sum -gt 255
+        set sum (math $sum % 256)
+        set flag 1
       end
+      set reg_v[$x] $sum
+      set reg_v[15] $flag
     else if test $n -eq 5
       subtract $reg_v[$x] $reg_v[$y]
     else if test $n -eq 6
@@ -197,7 +210,11 @@ function decode_execute
     set -l r (random 0 255)
     set reg_v[$x] (math "bitand($r, $nn)")
   else if test $hi_nibble -eq 15
-    if test $lo_byte -eq (math 0x1e) # i = i + vx
+    if test $lo_byte -eq (math 0x07)
+      set reg_v[$x] $reg_delay
+    else if test $lo_byte -eq (math 0x15)
+      set reg_delay $reg_v[$x]
+    else if test $lo_byte -eq (math 0x1e) # i = i + vx
       set reg_i (math $reg_i + $reg_v[$x])
       if test $reg_i -gt (math 0xFFF)
         set reg_i (math $reg_i % 0x1000)
@@ -235,6 +252,7 @@ function decode_execute
 end
 
 function blit_display_half_block
+  # echo -ne '\e[?25l' # make cursor invisible
   echo -ne '\e[H' # go to top left
   for y in (seq 0 2 (math $display_height - 1))
     for x in (seq 1 $display_width)
@@ -262,9 +280,13 @@ function blit_display_half_block
   printf "\e[1;0m"
   printf "pc: 0x%03x "  $reg_pc
   printf "i: 0x%03x " $reg_i
-  printf "sk: "
-  for s in $stack
-    printf "0x%04x " $s
+  # printf "sk: "
+  # for s in $stack
+  #   printf "0x%04x " $s
+  # end
+  set time_passed (math (date +'%s') - $start_time)
+  if test $time_passed -gt 1
+    printf "cps: %.0f" (math $cycle / $time_passed)
   end
 end
 
@@ -317,7 +339,7 @@ function subtract -a a b
   if test $flag -eq 0
     set reg_v[$x] (math $reg_v[$x] + 256)
   end
-  set reg_v[15] flag
+  set reg_v[15] $flag
 end
 
 function crash
