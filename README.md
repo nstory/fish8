@@ -3,6 +3,8 @@ This is a [CHIP-8](https://en.wikipedia.org/wiki/CHIP-8) emulator written in [Fi
 
 This is very incomplete. It can run some simple ROMs, but there's no support for keyboard input. I couldn't figure out how to poll the keyboard in a non-blocking way from fish.
 
+![screenshot of octojam1title.ch8](screenshot.png)
+
 ## Usage & Stuff
 ```
 # run a rom
