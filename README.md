@@ -26,7 +26,7 @@ There's a [discussion about this in the bug tracker](https://github.com/fish-she
 #### Reading a Binary File
 I couldn't figure out a good way to read in a binary file. The [read command](https://fishshell.com/docs/current/cmds/read.html) seemed to choke on the NULL bytes as did `set myvar (cat file.bin)`
 
-I ended up doing something really hacky with [od](https://en.wikipedia.org/wiki/Od_(Unix) and [sed](https://en.wikipedia.org/wiki/Sed).
+I ended up doing something really hacky with [od](https://en.wikipedia.org/wiki/Od_\(Unix\)) and [sed](https://en.wikipedia.org/wiki/Sed).
 
 #### Arrays are indexed starting at 1
 This is painful, at least when writing a program like Fish8. According to the docs, there's a good reason for this, however:
