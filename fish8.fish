@@ -209,11 +209,22 @@ function decode_execute
   else if test $hi_nibble -eq 12
     set -l r (random 0 255)
     set reg_v[$x] (math "bitand($r, $nn)")
+  else if test $hi_nibble -eq 14
+    if test $lo_byte -eq (math 0x9e) # skip if key pressed
+      : # noop b/c no keyboard support
+    else if test $lo_byte -eq (math 0xa1) # skip if key not pressed
+      # always skip b/c no keyboard support
+      set reg_pc (math $reg_pc + 2)
+    else
+      crash "unknown 0xE0 code:" (printf "0x%02x" $lo_byte)
+    end
   else if test $hi_nibble -eq 15
     if test $lo_byte -eq (math 0x07)
       set reg_v[$x] $reg_delay
     else if test $lo_byte -eq (math 0x15)
       set reg_delay $reg_v[$x]
+    else if test $lo_byte -eq (math 0x18) # set sound timer
+      # no sound support
     else if test $lo_byte -eq (math 0x1e) # i = i + vx
       set reg_i (math $reg_i + $reg_v[$x])
       if test $reg_i -gt (math 0xFFF)
