@@ -62,5 +62,5 @@ There's a lack of builtins for working with lists. It would be nice to have some
 ## See Also
 - [Guide to making a CHIP-8 emulator by Tobias V. Langhoff](https://tobiasvl.github.io/blog/write-a-chip-8-emulator/) &mdash; awesome resource, thanks Tobias!
 - [Timendus/chip8-test-suite](https://github.com/Timendus/chip8-test-suite) &mdash; all the test roms are from here; awesome resource!
-- [The fish language](https://fishshell.com/docs/current/language.html) &mash; fish has great documentation
+- [The fish language](https://fishshell.com/docs/current/language.html) &mdash; fish has great documentation
 
